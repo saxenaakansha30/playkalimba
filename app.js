@@ -7,6 +7,7 @@ const MAJOR_SCALE_SEMITONES = [0, 2, 4, 5, 7, 9, 11]; // degrees 1..7
 const DEFAULT_BPM = 100;
 const DEFAULT_KEY_OFFSET = 0; // C
 const DEFAULT_LINE_GAP_BEATS = 0.5; // extra pause inserted when a tab line ends
+const DEFAULT_REVERB_PERCENT = 55; // wet mix for the shared reverb bus
 const STRUM_GAP_SECONDS = 0.03; // delay between each tone of a chord, strummed rather than struck at once
 
 let audioCtx = null;
@@ -17,6 +18,8 @@ const els = {
   tab: document.getElementById('tab'),
   transpose: document.getElementById('transpose'),
   lineGap: document.getElementById('lineGap'),
+  tempo: document.getElementById('tempo'),
+  reverb: document.getElementById('reverb'),
   play: document.getElementById('play'),
   stop: document.getElementById('stop'),
   status: document.getElementById('status'),
@@ -214,6 +217,38 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// A real kalimba's hollow wooden body resonates and reflects sound, giving
+// every pluck a natural, lingering ambience that a dry oscillator lacks.
+// There's no audio file to load for this, so the reverb "room" is built
+// algorithmically: a burst of noise shaped by an exponential decay curve
+// makes a convincing impulse response for a ConvolverNode. All notes share
+// one reverb bus (rather than one convolver per note) so they blend into a
+// single, coherent room tone instead of each ringing in its own space.
+let reverbSendCache = null;
+function getReverbSend(ctx) {
+  if (reverbSendCache && reverbSendCache.ctx === ctx) return reverbSendCache.send;
+
+  const length = Math.floor(ctx.sampleRate * 3.6);
+  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let ch = 0; ch < impulse.numberOfChannels; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.0);
+    }
+  }
+
+  const convolver = ctx.createConvolver();
+  convolver.buffer = impulse;
+  convolver.connect(ctx.destination);
+
+  const send = ctx.createGain();
+  send.gain.value = DEFAULT_REVERB_PERCENT / 100;
+  send.connect(convolver);
+
+  reverbSendCache = { ctx, send };
+  return send;
+}
+
 // Tracks a source node together with the gain node controlling its
 // amplitude, so Stop can fade it out instead of truncating the waveform
 // mid-swing (which produces an audible click/pop).
@@ -230,6 +265,7 @@ function pluckNote(freq, startTime, duration) {
   const master = ctx.createGain();
   master.gain.value = 0.85;
   master.connect(ctx.destination);
+  master.connect(getReverbSend(ctx));
 
   // Higher tines ring out faster than low tines on a real kalimba — this
   // shapes the overtone brightness falloff below, it does not set how
@@ -251,8 +287,8 @@ function pluckNote(freq, startTime, duration) {
   noiseFilter.Q.value = 0.6;
   const noiseGain = ctx.createGain();
   noiseGain.gain.setValueAtTime(0, startTime);
-  noiseGain.gain.linearRampToValueAtTime(0.4, startTime + 0.002);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.025);
+  noiseGain.gain.linearRampToValueAtTime(0.28, startTime + 0.006);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.03);
   noise.connect(noiseFilter).connect(noiseGain).connect(master);
   noise.start(startTime);
   noise.stop(startTime + 0.05);
@@ -318,9 +354,13 @@ function onPlay() {
     return;
   }
 
-  const secondsPerBeat = 60 / DEFAULT_BPM;
+  const bpm = Math.max(1, parseInt(els.tempo.value, 10) || DEFAULT_BPM);
+  const secondsPerBeat = 60 / bpm;
   const keyOffset = DEFAULT_KEY_OFFSET;
   const transpose = parseInt(els.transpose.value, 10) || 0;
+  const reverbInput = parseFloat(els.reverb.value);
+  const reverbPercent = clamp(Number.isFinite(reverbInput) ? reverbInput : DEFAULT_REVERB_PERCENT, 0, 100);
+  getReverbSend(audioCtx).gain.value = reverbPercent / 100;
   const lineGapBeats = Math.max(0, parseFloat(els.lineGap.value));
   const lineGapSeconds = (Number.isFinite(lineGapBeats) ? lineGapBeats : DEFAULT_LINE_GAP_BEATS) * secondsPerBeat;
 
