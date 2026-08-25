@@ -7,6 +7,7 @@ const MAJOR_SCALE_SEMITONES = [0, 2, 4, 5, 7, 9, 11]; // degrees 1..7
 const DEFAULT_BPM = 100;
 const DEFAULT_KEY_OFFSET = 0; // C
 const DEFAULT_LINE_GAP_BEATS = 0.5; // extra pause inserted when a tab line ends
+const DEFAULT_REVERB_PERCENT = 55; // wet mix for the shared reverb bus
 const STRUM_GAP_SECONDS = 0.03; // delay between each tone of a chord, strummed rather than struck at once
 
 let audioCtx = null;
@@ -18,6 +19,7 @@ const els = {
   transpose: document.getElementById('transpose'),
   lineGap: document.getElementById('lineGap'),
   tempo: document.getElementById('tempo'),
+  reverb: document.getElementById('reverb'),
   play: document.getElementById('play'),
   stop: document.getElementById('stop'),
   status: document.getElementById('status'),
@@ -240,7 +242,7 @@ function getReverbSend(ctx) {
   convolver.connect(ctx.destination);
 
   const send = ctx.createGain();
-  send.gain.value = 0.55;
+  send.gain.value = DEFAULT_REVERB_PERCENT / 100;
   send.connect(convolver);
 
   reverbSendCache = { ctx, send };
@@ -356,6 +358,9 @@ function onPlay() {
   const secondsPerBeat = 60 / bpm;
   const keyOffset = DEFAULT_KEY_OFFSET;
   const transpose = parseInt(els.transpose.value, 10) || 0;
+  const reverbInput = parseFloat(els.reverb.value);
+  const reverbPercent = clamp(Number.isFinite(reverbInput) ? reverbInput : DEFAULT_REVERB_PERCENT, 0, 100);
+  getReverbSend(audioCtx).gain.value = reverbPercent / 100;
   const lineGapBeats = Math.max(0, parseFloat(els.lineGap.value));
   const lineGapSeconds = (Number.isFinite(lineGapBeats) ? lineGapBeats : DEFAULT_LINE_GAP_BEATS) * secondsPerBeat;
 
