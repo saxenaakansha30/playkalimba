@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Kalimba Tab Player</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Nunito:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sky-top: #bfe3ee;
+    --sky-mid: #e4f2df;
+    --sky-glow: #fbedcf;
+    --paper: #fffaf0;
+    --ink: #3f3428;
+    --ink-soft: #6f6152;
+    --primary: #b3382c;
+    --primary-light: #d97060;
+    --primary-deep: #7a2419;
+    --primary-shadow: 122, 36, 25;
+    --secondary: #d9a441;
+    --secondary-light: #eec371;
+    --secondary-deep: #b3822b;
+    --secondary-shadow: 179, 130, 43;
+    --tan-line: #ddcda9;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 40px 16px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    background:
+      radial-gradient(circle at 12% 15%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 16%),
+      radial-gradient(circle at 82% 8%, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0) 14%),
+      radial-gradient(circle at 65% 28%, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 12%),
+      linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 55%, var(--sky-glow) 100%);
+    background-attachment: fixed;
+  }
+  .card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 720px;
+    background: var(--paper);
+    border-radius: 22px;
+    padding: 32px 36px 28px;
+    box-shadow: 0 18px 40px -18px rgba(var(--primary-shadow), 0.35), 0 2px 0 rgba(255,255,255,0.6) inset;
+    border: 1px solid rgba(var(--primary-shadow), 0.25);
+  }
+  h1 {
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1.6rem;
+    color: var(--primary-deep);
+    margin: 0 0 4px;
+    letter-spacing: 0.2px;
+  }
+  h1 .leaf { margin-right: 6px; }
+  p.sub { color: var(--ink-soft); margin-top: 0; font-style: italic; }
+  textarea {
+    width: 100%;
+    height: 140px;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 1.05rem;
+    padding: 14px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--tan-line);
+    border-radius: 14px;
+    resize: vertical;
+    background: #fffdf7;
+    color: var(--ink);
+    box-shadow: inset 0 1px 4px rgba(var(--primary-shadow), 0.12);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: inset 0 1px 4px rgba(var(--primary-shadow), 0.12), 0 0 0 3px rgba(var(--primary-shadow), 0.22);
+  }
+  .controls {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    align-items: end;
+    margin: 18px 0;
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  label { font-size: 0.78rem; color: var(--ink-soft); font-weight: 600; }
+  input[type=number], select {
+    padding: 7px 10px;
+    border: 1.5px solid var(--tan-line);
+    border-radius: 10px;
+    font-size: 1rem;
+    width: 96px;
+    background: #fffdf7;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  input[type=number]:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-shadow), 0.22);
+  }
+  button {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'Quicksand', 'Nunito', sans-serif;
+    cursor: pointer;
+    color: white;
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
+    box-shadow: 0 6px 14px -6px rgba(var(--primary-shadow), 0.55);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 16px -6px rgba(var(--primary-shadow), 0.6); }
+  button:active:not(:disabled) { transform: translateY(0); }
+  button.stop {
+    background: linear-gradient(135deg, var(--secondary-light), var(--secondary));
+    box-shadow: 0 6px 14px -6px rgba(var(--secondary-shadow), 0.55);
+  }
+  button.stop:hover:not(:disabled) { box-shadow: 0 8px 16px -6px rgba(var(--secondary-shadow), 0.6); }
+  button:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: none; }
+  .legend {
+    background: linear-gradient(180deg, rgba(var(--primary-shadow), 0.07), rgba(var(--primary-shadow), 0.12));
+    border: 1px solid rgba(var(--primary-shadow), 0.25);
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin-top: 26px;
+    color: var(--ink);
+  }
+  .legend strong { color: var(--primary-deep); }
+  .legend code {
+    background: rgba(var(--primary-shadow), 0.16);
+    color: var(--primary-deep);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-weight: 600;
+  }
+  #status { min-height: 1.2em; font-size: 0.85rem; color: var(--secondary-deep); margin-top: 10px; font-weight: 600; }
+
+  /* Jiji, walking left to right along the bottom of the page. Legs move
+     as a diagonal trot (back-left+front-right together, back-right+
+     front-left together) — the way a real quadruped actually walks —
+     instead of both legs of a pair swinging in unison. */
+  .jiji-walk {
+    position: fixed;
+    bottom: 6px;
+    left: 0;
+    width: 170px;
+    z-index: 11;
+    pointer-events: none;
+    animation: jiji-walk-across 17s linear infinite;
+  }
+  .jiji-walk svg { display: block; width: 100%; height: auto; }
+  .jiji-bob { animation: jiji-bob 0.5s ease-in-out infinite; }
+  .jiji-leg-a { animation: jiji-leg-swing-a 0.5s ease-in-out infinite; }
+  .jiji-leg-b { animation: jiji-leg-swing-b 0.5s ease-in-out infinite; }
+  .jiji-tail { transform-origin: 16px 40px; animation: jiji-tail-swish 0.6s ease-in-out infinite alternate; }
+  @keyframes jiji-walk-across {
+    0% { transform: translateX(-20vw); }
+    100% { transform: translateX(120vw); }
+  }
+  @keyframes jiji-bob {
+    0%, 50%, 100% { transform: translateY(0); }
+    25%, 75% { transform: translateY(-4px); }
+  }
+  @keyframes jiji-leg-swing-a {
+    0% { transform: rotate(28deg); }
+    50% { transform: rotate(-28deg); }
+    100% { transform: rotate(28deg); }
+  }
+  @keyframes jiji-leg-swing-b {
+    0% { transform: rotate(-28deg); }
+    50% { transform: rotate(28deg); }
+    100% { transform: rotate(-28deg); }
+  }
+  @keyframes jiji-tail-swish {
+    from { transform: rotate(-8deg); }
+    to { transform: rotate(8deg); }
+  }
+
+  /* Kiki, pixel-art style (colors and pixel layout reused as-is from a
+     reference CodePen: https://codepen.io/pokecoder/pen/MWoVPQW), hung
+     from a string tied to her broom near the top of the page and
+     swaying like a pendulum. Only position/scale here are ours. */
+  .kiki-hang {
+    position: fixed;
+    top: 0;
+    right: 6%;
+    z-index: 5;
+    pointer-events: none;
+    transform-origin: 50% 0%;
+    animation: kiki-swing 3.6s ease-in-out infinite;
+  }
+  .kiki-scene {
+    position: relative;
+    width: 46em;
+    height: 50em;
+    font-size: 6px;
+    filter: blur(0.5px);
+  }
+  .kiki-string {
+    position: absolute;
+    top: 0;
+    left: 23.5em;
+    width: 0;
+    height: 12em;
+    border-left: 2px solid #2a2a2a;
+  }
+  .kiki-broomstick {
+    position: absolute;
+    top: 34em;
+    left: 0em;
+    width: 17em;
+    height: 2em;
+    background: linear-gradient(to bottom, #D5C071 0%, #D5C071 50%, #919064 50%, #919064 100%);
+  }
+  .kiki-broom {
+    background-color: transparent;
+    position: absolute;
+    color: #D5C071;
+    top: 31em;
+    left: 27em;
+    width: 1em;
+    height: 1em;
+    border-radius: 35%;
+    font-size: 1em;
+    box-shadow:
+      9em 0em #E1EE78, 10em 0em #E1EE78, 11em 0em #E1EE78, 12em 0em #E1EE78,
+      8em 1em, 9em 1em #E1EE78, 10em 1em #E1EE78, 11em 1em #E1EE78, 12em 1em #E1EE78, 13em 1em #E1EE78, 14em 1em #E1EE78, 15em 1em #E1EE78, 16em 1em #E1EE78, 17em 1em #E1EE78,
+      8em 2em, 9em 2em #E1EE78, 10em 2em #E1EE78, 11em 2em #E1EE78, 12em 2em #E1EE78, 13em 2em #E1EE78, 14em 2em #E1EE78, 15em 2em #E1EE78, 16em 2em #E1EE78,
+      7em 3em, 8em 3em #E1EE78, 9em 3em #E1EE78, 10em 3em #E1EE78, 11em 3em #E1EE78, 12em 3em #E1EE78, 13em 3em #E1EE78, 14em 3em #E1EE78, 15em 3em #E1EE78, 16em 3em #E1EE78, 17em 3em #E1EE78, 18em 3em #E1EE78, 19em 3em #E1EE78,
+      6em 4em, 7em 4em, 8em 4em #E1EE78, 9em 4em #E1EE78, 10em 4em #E1EE78, 11em 4em #E1EE78, 12em 4em #E1EE78, 13em 4em #E1EE78, 14em 4em #E1EE78, 15em 4em #E1EE78, 16em 4em #E1EE78, 17em 4em #E1EE78,
+      4em 5em, 5em 5em, 6em 5em, 7em 5em #E1EE78, 8em 5em #E1EE78, 9em 5em #E1EE78, 10em 5em #E1EE78, 11em 5em #E1EE78, 12em 5em #E1EE78, 13em 5em, 14em 5em, 15em 5em, 16em 5em, 17em 5em, 18em 5em,
+      1em 6em, 2em 6em, 3em 6em, 4em 6em, 5em 6em, 6em 6em, 7em 6em, 8em 6em, 9em 6em, 10em 6em, 11em 6em, 12em 6em, 13em 6em, 14em 6em, 15em 6em,
+      3em 7em, 4em 7em, 5em 7em, 6em 7em, 7em 7em, 8em 7em, 9em 7em, 10em 7em, 11em 7em, 12em 7em, 13em 7em, 14em 7em, 15em 7em, 16em 7em,
+      5em 8em, 6em 8em, 7em 8em, 8em 8em, 9em 8em, 10em 8em, 11em 8em, 12em 8em, 13em 8em
+  }
+  .kiki-figure {
+    background-color: transparent;
+    position: absolute;
+    top: 12em;
+    left: 11em;
+    width: 1em;
+    height: 1em;
+    border-radius: 35%;
+    font-size: 1em;
+    box-shadow:
+      5em -3em #D40000, 6em -3em #D40000, 14em -3em #F54536, 15em -3em #F54536,
+      5em -2em #F54536, 6em -2em #F54536, 7em -2em #D40000, 8em -2em #D40000, 12em -2em #F54536, 13em -2em #F54536, 14em -2em #F54536, 15em -2em #F54536, 16em -2em #F54536,
+      5em -1em #F54536, 6em -1em #F54536, 7em -1em #F54536, 8em -1em #F54536, 9em -1em #D40000, 10em -1em #F54536, 11em -1em #D40000, 12em -1em #F54536, 13em -1em #F54536, 14em -1em #F54536, 15em -1em #F54536, 16em -1em #F54536,
+      5em 0em #F54536, 6em 0em #F54536, 7em 0em #3D2525, 8em 0em #3D2525, 9em 0em #3D2525, 10em 0em #3D2525, 11em 0em #3D2525, 12em 0em #F54536, 13em 0em #F54536, 14em 0em #F54536, 15em 0em #F54536, 16em 0em #D40000,
+      6em 1em #3D2525, 7em 1em #3D2525, 8em 1em #3D2525, 9em 1em #3D2525, 10em 1em #3D2525, 11em 1em #3D2525, 12em 1em #3D2525, 13em 1em #D40000, 14em 1em #D40000, 15em 1em #D40000,
+      5em 2em #3D2525, 6em 2em #3D2525, 7em 2em, 8em 2em #3D2525, 9em 2em #3D2525, 10em 2em #3D2525, 11em 2em #3D2525, 12em 2em #3D2525, 13em 2em #3D2525, 14em 2em #D40000, 15em 2em #3D2525,
+      5em 3em #3D2525, 6em 3em, 7em 3em #C7AC87, 8em 3em #3D2525, 9em 3em #3D2525, 10em 3em, 11em 3em #3D2525, 12em 3em #3D2525, 13em 3em #3D2525, 14em 3em #D40000, 15em 3em,
+      5em 4em #3D2525, 6em 4em #C7AC87, 7em 4em #F7D8AD, 8em 4em #C7AC87, 9em 4em #3D2525, 10em 4em #3D2525, 11em 4em, 12em 4em #3D2525, 13em 4em, 14em 4em #D40000, 15em 4em, 16em 4em,
+      5em 5em #3D2525, 6em 5em #F7D8AD, 7em 5em #F7D8AD, 8em 5em #F7D8AD, 9em 5em #C7AC87, 10em 5em #3D2525, 11em 5em #C7AC87, 12em 5em, 13em 5em, 14em 5em, 15em 5em, 16em 5em,
+      6em 6em, 7em 6em #F7D8AD, 8em 6em #F7D8AD, 9em 6em, 10em 6em white, 11em 6em #C7AC87, 12em 6em, 13em 6em #C7AC87, 14em 6em, 15em 6em, 16em 6em,
+      6em 7em, 7em 7em #F7D8AD, 8em 7em #F7D8AD, 9em 7em, 10em 7em white, 11em 7em #C7AC87, 12em 7em #C7AC87, 13em 7em #C7AC87, 14em 7em, 15em 7em,
+      6em 8em #F7D8AD, 7em 8em #F7D8AD, 8em 8em #F7D8AD, 9em 8em #F7D8AD, 10em 8em #F7D8AD, 11em 8em #C7AC87, 12em 8em #C7AC87, 13em 8em, 14em 8em, 15em 8em, 16em 8em,
+      6em 9em #F7D8AD, 7em 9em #F7D8AD, 8em 9em #F7D8AD, 9em 9em #F7D8AD, 10em 9em #F7D8AD, 11em 9em #C7AC87, 12em 9em, 13em 9em, 14em 9em, 15em 9em,
+      7em 10em #F7D8AD, 8em 10em #F7D8AD, 9em 10em #F7D8AD, 10em 10em #C7AC87, 11em 10em #003385, 12em 10em #003385, 13em 10em, 14em 10em,
+      8em 11em #0047BA, 9em 11em #C7AC87, 10em 11em #0047BA, 11em 11em #0047BA, 12em 11em #003385, 13em 11em #003385,
+      7em 12em #0047BA, 8em 12em #D96F0D, 9em 12em #0047BA, 10em 12em #003385, 11em 12em #0047BA, 12em 12em #0047BA, 13em 12em #003385,
+      7em 13em #0047BA, 8em 13em #D96F0D, 9em 13em #0047BA, 10em 13em #003385, 11em 13em #0047BA, 12em 13em #0047BA, 13em 13em #003385, 14em 13em #003385,
+      6em 14em #0047BA, 7em 14em #0047BA, 8em 14em #0047BA, 9em 14em #D96F0D, 10em 14em #0047BA, 11em 14em #0047BA, 12em 14em #0047BA, 13em 14em #003385, 14em 14em #003385, 15em 14em #D96F0D, 16em 14em #D96F0D,
+      6em 15em #0047BA, 7em 15em #0047BA, 8em 15em #003385, 9em 15em #0047BA, 10em 15em #0047BA, 11em 15em #0047BA, 12em 15em #0047BA, 13em 15em #003385, 14em 15em #003385, 15em 15em #003385, 17em 15em #D96F0D, 18em 15em #D96F0D,
+      6em 16em #0047BA, 7em 16em #0047BA, 8em 16em #003385, 9em 16em #0047BA, 10em 16em #0047BA, 11em 16em #0047BA, 12em 16em #003385, 13em 16em #003385, 14em 16em #003385, 15em 16em #003385, 18em 16em #FF830F, 19em 16em #FF830F, 20em 16em #FF830F,
+      5em 17em #0047BA, 6em 17em #0047BA, 7em 17em #003385, 8em 17em #0047BA, 9em 17em #0047BA, 10em 17em #0047BA, 11em 17em #0047BA, 12em 17em #003385, 13em 17em #003385, 14em 17em #003385, 15em 17em #003385, 16em 17em #D96F0D, 17em 17em #FF830F, 18em 17em #FF830F, 19em 17em #FF830F, 20em 17em #FF830F, 21em 17em #FF830F,
+      5em 18em #0047BA, 6em 18em #0047BA, 7em 18em #C7AC87, 8em 18em #0047BA, 9em 18em #0047BA, 10em 18em #0047BA, 11em 18em #003385, 12em 18em #D96F0D, 13em 18em #003385, 14em 18em #D96F0D, 15em 18em #D96F0D, 16em 18em #FF830F, 17em 18em #FF830F, 18em 18em #FF830F, 19em 18em #FF830F, 20em 18em #FF830F, 21em 18em #FF830F, 22em 18em #FF830F, 23em 18em #003385,
+      5em 19em #F7D8AD, 6em 19em #C7AC87, 7em 19em #F7D8AD, 8em 19em #F7D8AD, 9em 19em #003385, 10em 19em #0047BA, 11em 19em #003385, 12em 19em #0047BA, 13em 19em #D96F0D, 14em 19em #FF830F, 15em 19em #FF830F, 16em 19em #FF830F, 17em 19em #FF830F, 18em 19em #FF830F, 19em 19em #FF830F, 20em 19em #D96F0D, 21em 19em #D96F0D, 22em 19em #D96F0D, 23em 19em #003385, 24em 19em #003385,
+      4em 20em #F7D8AD, 5em 20em #F7D8AD, 6em 20em #C7AC87, 7em 20em #F7D8AD, 8em 20em #003385, 9em 20em #003385, 10em 20em #003385, 11em 20em #0047BA, 12em 20em #0047BA, 13em 20em #D96F0D, 14em 20em #D96F0D, 15em 20em #FF830F, 16em 20em #FF830F, 17em 20em #FF830F, 18em 20em #D96F0D, 19em 20em #D96F0D, 20em 20em #FF830F, 21em 20em #D96F0D, 22em 20em #D96F0D, 23em 20em #003385, 24em 20em #003385,
+      3em 21em #F7D8AD, 4em 21em #F7D8AD, 5em 21em #C7AC87, 6em 21em #F7D8AD, 7em 21em #0047BA, 8em 21em #0047BA, 9em 21em #0047BA, 10em 21em #0047BA, 11em 21em #0047BA, 12em 21em #0047BA, 13em 21em #FF830F, 14em 21em #FF830F, 15em 21em #D96F0D, 16em 21em #D96F0D, 17em 21em #D96F0D, 18em 21em #FF830F, 19em 21em #FF830F, 20em 21em #FF830F, 21em 21em #D96F0D, 22em 21em #003385, 23em 21em #003385,
+      3em 22em #F7D8AD, 6em 22em #0047BA, 7em 22em #0047BA, 8em 22em #0047BA, 9em 22em #0047BA, 10em 22em #0047BA, 11em 22em #0047BA, 12em 22em #0047BA, 13em 22em #0047BA, 14em 22em #FF830F, 15em 22em #FF830F, 16em 22em #FF830F, 17em 22em #FF830F, 18em 22em #FF830F, 19em 22em #FF830F, 20em 22em #D96F0D, 21em 22em #003385, 22em 22em #003385,
+      4em 23em #C7AC87, 5em 23em #C7AC87, 6em 23em #0047BA, 7em 23em #0047BA, 8em 23em #0047BA, 9em 23em #0047BA, 10em 23em #0047BA, 11em 23em #0047BA, 12em 23em #0047BA, 13em 23em #0047BA, 14em 23em #0047BA, 15em 23em #FF830F, 16em 23em #FF830F, 17em 23em #FF830F, 18em 23em #FF830F, 19em 23em #003385, 20em 23em #003385, 21em 23em #003385,
+      6em 24em #0047BA, 7em 24em #0047BA, 8em 24em #0047BA, 9em 24em #0047BA, 10em 24em #0047BA, 11em 24em #003385, 12em 24em #0047BA, 13em 24em #0047BA, 14em 24em #0047BA, 15em 24em #0047BA, 16em 24em #0047BA, 17em 24em #0047BA, 18em 24em #0047BA, 19em 24em #0047BA,
+      7em 25em #003385, 8em 25em #003385, 9em 25em #0047BA, 10em 25em #0047BA, 11em 25em #0047BA, 12em 25em #003385, 13em 25em #003385, 14em 25em #0047BA, 15em 25em #0047BA, 16em 25em #0047BA,
+      9em 26em #003385, 10em 26em #003385, 11em 26em #003385, 12em 26em #C7AC87, 13em 26em #C7AC87, 14em 26em #C7AC87, 15em 26em #C7AC87, 16em 26em #C7AC87, 17em 26em #F54536, 18em 26em #F54536,
+      14em 27em #C7AC87, 15em 27em #C7AC87, 16em 27em #C7AC87, 17em 27em #F54536, 18em 27em #F54536, 19em 27em #F54536,
+      16em 28em #C7AC87, 17em 28em #C7AC87, 18em 28em #F54536, 19em 28em #F54536,
+      17em 29em #F54536, 18em 29em #F54536, 19em 29em #F54536,
+      18em 30em #F54536, 19em 30em #F54536
+  }
+  @keyframes kiki-swing {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+
+  /* Background clouds, drifting slowly. Each puff is drawn with the
+     same box-shadow-dot technique as Kiki/broom above (colors here are
+     all inherited from `color`, via the shorthand box-shadow entries
+     with no explicit color). */
+  .cloud {
+    position: fixed;
+    left: 0;
+    width: 1em;
+    height: 7em;
+    color: rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+    z-index: 1;
+    box-shadow:
+      0em 1em, 1em 2em, 2em 3em, 1em 1em, 2em 1em, 3em 1em, 4em 2em, 5em 2em, 6em 3em, 7em 4em, 8em 4em, 9em 3em, 10em 2em, 11em 2em, 12em 1em, 13em 1em, 14em 1em, 15em 2em, 16em 2em, 17em 3em, 18em 4em, 19em 4em, 20em 3em, 21em 2em, 22em 2em, 23em 1em, 24em 1em, 25em 1em, 26em 2em, 27em 2em, 28em 3em, 29em 4em, 30em 4em, 31em 3em, 32em 2em, 33em 2em, 34em 1em, 35em 1em, 36em 1em, 37em 2em, 38em 2em, 39em 3em, 40em 4em, 41em 4em, 42em 3em;
+  }
+  .cloud-1 { top: 6%; font-size: 7px; opacity: 0.9; animation: cloud-drift 100s linear infinite; }
+  .cloud-2 { top: 16%; font-size: 5px; opacity: 0.7; animation: cloud-drift 140s linear infinite; animation-delay: -40s; }
+  .cloud-3 { top: 28%; font-size: 9px; opacity: 0.55; animation: cloud-drift 170s linear infinite; animation-delay: -90s; }
+  @keyframes cloud-drift {
+    from { transform: translateX(-25vw); }
+    to { transform: translateX(125vw); }
+  }
+
+  /* A broom resting in the bottom-left corner, leaning the way a real
+     broom does when propped up against a wall — pivoting around the
+     point where the bristles meet the floor, handle rising up and to
+     the left. */
+  .corner-broom {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    z-index: 4;
+    pointer-events: none;
+    width: 220px;
+    height: 380px;
+  }
+  .broom-assembly {
+    position: absolute;
+    left: 107px;
+    bottom: 30px;
+    width: 15px;
+    height: 370px;
+    transform: rotate(-18deg);
+    transform-origin: bottom center;
+  }
+  .broom-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 15px;
+    height: 300px;
+    background-color: #5a4530;
+    border-radius: 50px;
+  }
+  .brushes {
+    width: 120px;
+    height: 120px;
+    background-color: #f8b65b;
+    border-radius: 50px 50px 10px 10px;
+    position: absolute;
+    left: -52px;
+    top: 250px;
+  }
+  .brushes::before, .brushes::after {
+    content: '';
+    display: block;
+    width: 31px;
+    height: 10px;
+    background-color: #ed6e46;
+    border-radius: 10px;
+    position: absolute;
+    left: 44px;
+  }
+  .brushes::before { top: -17px; }
+  .brushes::after { top: -10px; }
+  .string {
+    width: 120px;
+    height: 4px;
+    background-color: #ed6e46;
+    position: absolute;
+    left: -52px;
+    top: 294px;
+    border-radius: 50px;
+  }
+  .string.string-2 { top: 287px; width: 118px; left: -51px; }
+  .line {
+    width: 2px;
+    height: 50px;
+    background-color: #e0a155;
+    position: absolute;
+    border-radius: 50px;
+    left: -38px;
+    top: 320px;
+  }
+  .line.line-2 { left: -23px; }
+  .line.line-3 { left: -8px; }
+  .line.line-4 { left: 7px; }
+  .line.line-5 { left: 22px; }
+  .line.line-6 { left: 37px; }
+  .line.line-7 { left: 52px; }
+</style>
+</head>
+<body>
+
+<div class="cloud cloud-1" aria-hidden="true"></div>
+<div class="cloud cloud-2" aria-hidden="true"></div>
+<div class="cloud cloud-3" aria-hidden="true"></div>
+
+<div class="corner-broom" aria-hidden="true">
+  <div class="broom-assembly">
+    <div class="broom-handle"></div>
+    <div class="brushes"></div>
+    <div class="string"></div>
+    <div class="string string-2"></div>
+    <div class="line"></div>
+    <div class="line line-2"></div>
+    <div class="line line-3"></div>
+    <div class="line line-4"></div>
+    <div class="line line-5"></div>
+    <div class="line line-6"></div>
+    <div class="line line-7"></div>
+  </div>
+</div>
+
+<div class="jiji-walk" aria-hidden="true">
+  <div class="jiji-bob">
+    <svg viewBox="0 0 100 66" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="jijiFur" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#3d3a35"/>
+          <stop offset="100%" stop-color="#0f0e0c"/>
+        </linearGradient>
+        <radialGradient id="jijiInnerEar" cx="45%" cy="40%" r="65%">
+          <stop offset="0%" stop-color="#d8919f"/>
+          <stop offset="100%" stop-color="#8a4a5c"/>
+        </radialGradient>
+        <radialGradient id="jijiEye" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#f7ecab"/>
+          <stop offset="100%" stop-color="#cf9f2e"/>
+        </radialGradient>
+      </defs>
+
+      <g class="jiji-leg-a" style="transform-origin: 25px 49px">
+        <rect x="22" y="48" width="6" height="15" rx="3" fill="url(#jijiFur)"/>
+      </g>
+      <g class="jiji-leg-b" style="transform-origin: 33px 49px">
+        <rect x="30" y="48" width="6" height="15" rx="3" fill="url(#jijiFur)"/>
+      </g>
+      <g class="jiji-leg-b" style="transform-origin: 65px 49px">
+        <rect x="62" y="48" width="6" height="15" rx="3" fill="url(#jijiFur)"/>
+      </g>
+      <g class="jiji-leg-a" style="transform-origin: 73px 49px">
+        <rect x="70" y="48" width="6" height="15" rx="3" fill="url(#jijiFur)"/>
+      </g>
+
+      <path class="jiji-tail" d="M16,40 C 4,34 2,18 14,9" stroke="url(#jijiFur)" stroke-width="6" fill="none" stroke-linecap="round"/>
+
+      <!-- body: smooth arched-back silhouette instead of a plain ellipse -->
+      <path d="M16,49 C18,34 28,22 45,21 C60,20 69,27 69,38 C69,46 64,50 58,50 L24,50 C20,50 17,50 16,49 Z" fill="url(#jijiFur)"/>
+
+      <!-- head, rounded with a small muzzle -->
+      <path d="M67,31 C66,18 78,9 89,13 C98,16 101,27 95,34 C89,41 78,41 71,37 C68,35 67,33 67,31 Z" fill="url(#jijiFur)"/>
+
+      <!-- ear, with a gradient-shaded inner ear -->
+      <path d="M78,15 C76,7 82,1 88,3 C91,9 89,16 84,18 Z" fill="url(#jijiFur)"/>
+      <path d="M79,14 C78,9 82,5 85,6 C87,10 86,14 83,16 Z" fill="url(#jijiInnerEar)"/>
+
+      <!-- eye, gradient-shaded -->
+      <path d="M87,24 C89,21 94,21 96,24 C94,28 89,28 87,24 Z" fill="url(#jijiEye)"/>
+      <ellipse cx="92" cy="24.3" rx="1.1" ry="1.9" fill="#241f1a"/>
+
+      <!-- nose and mouth -->
+      <path d="M98,29 L100,31 L98,32 Z" fill="#c98a98"/>
+      <path d="M96,32 Q98,34 100,32" stroke="#241f1a" stroke-width="0.7" fill="none" stroke-linecap="round"/>
+    </svg>
+  </div>
+</div>
+
+<div class="kiki-hang" aria-hidden="true">
+  <div class="kiki-scene">
+    <div class="kiki-string"></div>
+    <div class="kiki-broomstick"></div>
+    <div class="kiki-broom"></div>
+    <div class="kiki-figure"></div>
+  </div>
+</div>
+
+<div class="card">
+
+<h1><span class="leaf">🍃</span>Kalimba Tab Player</h1>
+<p class="sub">Type numbered-notation kalimba tabs below and hear how they'd sound on a 17-tine kalimba.</p>
+
+<textarea id="tab" spellcheck="false">1 2 3 4 5 6 7 1'
+1' 7 6 5 4 3 2 1
+5 5 6 5 3 - 0 -
+(1 3 5) 3. 5 (3'5)</textarea>
+
+<div class="controls">
+  <div class="field">
+    <label for="transpose">Transpose (semitones)</label>
+    <input type="number" id="transpose" value="0" min="-24" max="24">
+  </div>
+  <div class="field">
+    <label for="lineGap">Line gap (beats)</label>
+    <input type="number" id="lineGap" value="0.5" min="0" max="8" step="0.25">
+  </div>
+  <div class="field">
+    <button id="play">▶ Play</button>
+  </div>
+  <div class="field">
+    <button id="stop" class="stop">■ Stop</button>
+  </div>
+</div>
+
+<div id="status"></div>
+
+<div class="legend">
+  <strong>Tab format (numbered notation / jianpu):</strong><br>
+  <code>1</code>–<code>7</code> = scale degrees (do re mi fa sol la ti) in C major.<br>
+  <code>1'</code> = one octave up, <code>1''</code> = two octaves up. <code>1,</code> = one octave down.<br>
+  <code>-</code> = extend the previous note by one more beat.<br>
+  <code>0</code> = rest for one beat.<br>
+  <code>3.</code> = dotted note, 1.5x the duration.<br>
+  <code>(3'5)</code>, <code>[1 3 5]</code>, or <code>1-3-5</code> = play those notes together as a chord (strummed fast, in order).<br>
+  <code>|</code> = bar line, purely visual — ignored when playing.<br>
+  Separate notes with spaces or newlines — a newline also inserts a small pause during
+  playback (set with <strong>Line gap</strong>) to mark the phrase boundary.<br><br>
+  Your kalimba's actual pitch may sit a little higher/lower than the app's default — use
+  <strong>Transpose</strong> to nudge it until it matches your instrument.
+</div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
