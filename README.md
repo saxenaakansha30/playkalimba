@@ -13,6 +13,7 @@ paste a tab, hit Play, and hear it synthesized as a plucked-tine kalimba tone
 - Chords (`(1 3 5)`, `[1 3 5]`, `1-3-5`) are strummed in the order they're
   written rather than struck all at once.
 - Transpose control to match your physical kalimba's actual pitch.
+- Tempo control (BPM) to speed up or slow down playback.
 - Adjustable pause between tab lines, so phrasing reads clearly during
   playback.
 

@@ -17,6 +17,7 @@ const els = {
   tab: document.getElementById('tab'),
   transpose: document.getElementById('transpose'),
   lineGap: document.getElementById('lineGap'),
+  tempo: document.getElementById('tempo'),
   play: document.getElementById('play'),
   stop: document.getElementById('stop'),
   status: document.getElementById('status'),
@@ -318,7 +319,8 @@ function onPlay() {
     return;
   }
 
-  const secondsPerBeat = 60 / DEFAULT_BPM;
+  const bpm = Math.max(1, parseInt(els.tempo.value, 10) || DEFAULT_BPM);
+  const secondsPerBeat = 60 / bpm;
   const keyOffset = DEFAULT_KEY_OFFSET;
   const transpose = parseInt(els.transpose.value, 10) || 0;
   const lineGapBeats = Math.max(0, parseFloat(els.lineGap.value));
