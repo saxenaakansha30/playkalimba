@@ -89,6 +89,12 @@
     align-items: end;
     margin: 18px 0;
   }
+  .actions {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin: 0 0 18px;
+  }
   .field { display: flex; flex-direction: column; gap: 5px; }
   label { font-size: 0.78rem; color: var(--ink-soft); font-weight: 600; }
   input[type=number], select {
@@ -509,6 +515,9 @@
     <label for="reverb">Reverb (%)</label>
     <input type="number" id="reverb" value="55" min="0" max="100" step="5">
   </div>
+</div>
+
+<div class="actions">
   <div class="field">
     <button id="play">▶ Play</button>
   </div>

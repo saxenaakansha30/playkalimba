@@ -287,8 +287,8 @@ function pluckNote(freq, startTime, duration) {
   noiseFilter.Q.value = 0.6;
   const noiseGain = ctx.createGain();
   noiseGain.gain.setValueAtTime(0, startTime);
-  noiseGain.gain.linearRampToValueAtTime(0.4, startTime + 0.002);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.025);
+  noiseGain.gain.linearRampToValueAtTime(0.28, startTime + 0.006);
+  noiseGain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.03);
   noise.connect(noiseFilter).connect(noiseGain).connect(master);
   noise.start(startTime);
   noise.stop(startTime + 0.05);
