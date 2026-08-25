@@ -226,12 +226,12 @@ let reverbSendCache = null;
 function getReverbSend(ctx) {
   if (reverbSendCache && reverbSendCache.ctx === ctx) return reverbSendCache.send;
 
-  const length = Math.floor(ctx.sampleRate * 2.2);
+  const length = Math.floor(ctx.sampleRate * 3.6);
   const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
   for (let ch = 0; ch < impulse.numberOfChannels; ch++) {
     const data = impulse.getChannelData(ch);
     for (let i = 0; i < length; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.2);
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2.0);
     }
   }
 
@@ -240,7 +240,7 @@ function getReverbSend(ctx) {
   convolver.connect(ctx.destination);
 
   const send = ctx.createGain();
-  send.gain.value = 0.32;
+  send.gain.value = 0.55;
   send.connect(convolver);
 
   reverbSendCache = { ctx, send };
