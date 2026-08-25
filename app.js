@@ -215,6 +215,38 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// A real kalimba's hollow wooden body resonates and reflects sound, giving
+// every pluck a natural, lingering ambience that a dry oscillator lacks.
+// There's no audio file to load for this, so the reverb "room" is built
+// algorithmically: a burst of noise shaped by an exponential decay curve
+// makes a convincing impulse response for a ConvolverNode. All notes share
+// one reverb bus (rather than one convolver per note) so they blend into a
+// single, coherent room tone instead of each ringing in its own space.
+let reverbSendCache = null;
+function getReverbSend(ctx) {
+  if (reverbSendCache && reverbSendCache.ctx === ctx) return reverbSendCache.send;
+
+  const length = Math.floor(ctx.sampleRate * 2.2);
+  const impulse = ctx.createBuffer(2, length, ctx.sampleRate);
+  for (let ch = 0; ch < impulse.numberOfChannels; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3.2);
+    }
+  }
+
+  const convolver = ctx.createConvolver();
+  convolver.buffer = impulse;
+  convolver.connect(ctx.destination);
+
+  const send = ctx.createGain();
+  send.gain.value = 0.32;
+  send.connect(convolver);
+
+  reverbSendCache = { ctx, send };
+  return send;
+}
+
 // Tracks a source node together with the gain node controlling its
 // amplitude, so Stop can fade it out instead of truncating the waveform
 // mid-swing (which produces an audible click/pop).
@@ -231,6 +263,7 @@ function pluckNote(freq, startTime, duration) {
   const master = ctx.createGain();
   master.gain.value = 0.85;
   master.connect(ctx.destination);
+  master.connect(getReverbSend(ctx));
 
   // Higher tines ring out faster than low tines on a real kalimba — this
   // shapes the overtone brightness falloff below, it does not set how
